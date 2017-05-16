@@ -6,16 +6,18 @@ import readline
 readline.parse_and_bind("tab: complete")
 
 class LSB_Hide_Message:
+
 	def __init__(self, imagePath):
 		self.imagePath = imagePath
 		self.imageName = imagePath[:imagePath.index('.')]
 		self.imageBin = []
 		self.messageBin = []
-		self.STX = "\x02"
-		self.ETX = "\x03"
-		self.startIndex = 60
+		self.STX = "\x02" 		# the message start with STX to check if the image has secret message 
+		self.ETX = "\x03"		# ETX used to sign the end of message, so the iteration will stop
+		self.startIndex = 60	# Insertion start from index 60, because if you insert from 0, the image will corrupt 
 
 	def extractBytes(self):
+		# open image and save image as binary
 		with open(self.imagePath, "rb") as imageFile:
 			f = imageFile.read()
 			b = bytearray(f)
@@ -33,7 +35,7 @@ class LSB_Hide_Message:
 		message = message + raw_input()
 		message = message + self.ETX
 
-		messageByte = bytearray(message.encode('UTF-8'))
+		messageByte = bytearray(message.encode('UTF-8'))	# convert image to binary
 
 		for char in messageByte:
 			self.messageBin.append(bin(char)[2:].zfill(8))
@@ -59,7 +61,8 @@ class LSB_Hide_Message:
 			return False
 
 	def canUsed(self, bin):
-		return int(bin, 2) <= 254
+		return int(bin, 2) <= 254	# this program use 8 bit data, so if there are negative number, it will convert to positive
+									# such as if you have -1 then it will be 255. It will broke the image.
 
 	def hide_message(self):
 		try:
@@ -70,6 +73,9 @@ class LSB_Hide_Message:
 		self.getHiddenData()
 
 		counter = self.startIndex
+
+		# insert all message character to 1 digit image's LSB.
+		# you can use 2 digits or 3 digits, but it will make the big differences with original image.
 		for byte in self.messageBin:
 
 			bitArray = str(byte.encode('UTF-8'))
@@ -79,7 +85,8 @@ class LSB_Hide_Message:
 
 				if self.canUsed(self.imageBin[counter]):
 
-					self.imageBin[counter] = self.imageBin[counter][:1] + str(bitArray[i])
+					self.imageBin[counter] = self.imageBin[counter][:1] + str(bitArray[i])	# insert bit per bit of message char to image by replacing
+																							# the LSB digit
 
 					i += 1
 
